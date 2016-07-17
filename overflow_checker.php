@@ -1,6 +1,16 @@
 <?php
+
 if (php_sapi_name() !== "cli")
     echo "<pre>";
+
+include('overflow_checker_config.php');
+
+$o = new DBOverflowCheck();
+$o->connectDB($userPass['user'],$userPass['pass'],'information_schema');
+$o->check();
+
+if (php_sapi_name() !== "cli")
+    echo "</pre>";
 
 class DBOverflowCheck {
     public $dbh;
@@ -117,11 +127,3 @@ class DBOverflowCheck {
 
 }
 
-include('overflow_checker_config.php');
-
-$o = new DBOverflowCheck();
-$o->connectDB($userPass['user'],$userPass['pass'],'information_schema');
-$o->check();
-
-if (php_sapi_name() !== "cli")
-    echo "</pre>";
