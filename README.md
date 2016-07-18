@@ -20,3 +20,8 @@ the designated data types. This tool provides a way of handling
 this problem in a proactive/preventive manner.
 
 
+Testing
+-------
+
+This tool has been developed and tested using MySQL 5.5.49 and PHP 5.5.9
+and is expected to work on PHP >= 5.5.9

@@ -1,5 +1,5 @@
 <?php
-
+ini_set('precision',40);
 if (php_sapi_name() !== "cli")
     echo "<pre>";
 
@@ -14,22 +14,7 @@ if (php_sapi_name() !== "cli")
 
 class DBOverflowCheck {
     public $dbh;
-
-    # http://dev.mysql.com/doc/refman/5.7/en/integer-types.html
-    # for the signed types min=-max
-    # for unsigned types   min=0
-    public $maxAllowed = array(
-        'tinyint'    => 127,
-        'utinyint'   => 255,
-        'smallint'   => 32767,
-        'usmallint'  => 65535,
-        'mediumint'  => 8388607,
-        'umediumint' => 16777215,
-        'int'        => 2147483647,
-        'uint'       => 4294967295,
-        'bigint'     => 9223372036854775807,
-        'ubigint'    => 18446744073709551615,
-    );
+    public $maxAllowed = array();
 
     public $proneToUnderflow = array(
         'tinyint',
@@ -39,7 +24,59 @@ class DBOverflowCheck {
         'bigint',
     );
 
+    public $textTypes = array(
+        'tinytext',
+        'text',
+        'mediumtext',
+        'longtext',
+        'varchar',
+        'char',
+    );
+
+    public $numericTypes = array(
+        'tinyint',
+        'smallint',
+        'mediumint',
+        'int',
+        'bigint',
+        'utinyint',
+        'usmallint',
+        'umediumint',
+        'uint',
+        'ubigint',
+    );
+
     function __construct() {
+
+        # for numeric types
+        # http://dev.mysql.com/doc/refman/5.7/en/integer-types.html
+        # - the signed types min=-max
+        # - unsigned types   min=0
+        # 
+        # for text types
+        # http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html#idm140434164775232
+        # http://stackoverflow.com/a/13506920/827519
+        # http://stackoverflow.com/a/13932834/827519
+        $this->maxAllowed = array(
+            # numeric types
+            'tinyint'    => "127",
+            'utinyint'   => "255",
+            'smallint'   => "32767",
+            'usmallint'  => "65535",
+            'mediumint'  => "8388607",
+            'umediumint' => "16777215",
+            'int'        => "2147483647",
+            'uint'       => "4294967295",
+            'bigint'     => "9223372036854775807",
+            'ubigint'    => "18446744073709551615",
+            # text types
+            'char'       => 255,
+            'varchar'    => 65535,
+            'tinytext'   => (1<<8),
+            'text'       => (1<<16),
+            'mediumtext' => (1<<24),
+            'longtext'   => (1<<32),
+        );
     }
 
     function __destruct() {
@@ -61,10 +98,10 @@ class DBOverflowCheck {
     }
 
     # gets column minimum and maximum values
-    function getMinMax($dbName,$tableName,$columnName) {
+    function getMinMax($dbName,$tableName,$columnName,$dataType) {
 
         # check parameters
-        $validNamePattern = '/^[a-zA-Z0-9_\-]+$/';
+        $validNamePattern = '/^[a-zA-Z0-9_\-\ ]+$/';
         if(!preg_match($validNamePattern,$tableName)) {
             throw new Exception('Invalid table name');
         };
@@ -72,18 +109,30 @@ class DBOverflowCheck {
             throw new Exception('Invalid database name');
         };
         if(!preg_match($validNamePattern,$columnName)) {
+            printf("%s\n",$columnName);
             throw new Exception('Invalid column name');
         };
 
-        $query = "
+        $query="";
+        if(in_array($dataType, $this->numericTypes)) {
+            $query="
             SELECT
-                MIN($columnName) AS _min,
-                MAX($columnName) AS _max
+                MIN(`$columnName`) AS _min,
+                MAX(`$columnName`) AS _max
             FROM $dbName.$tableName ;
-        ";
+            ";
+        } else if(in_array($dataType, $this->textTypes)) {
+            $query="
+            SELECT
+                MIN(LENGTH(`$columnName`)) AS _min,
+                MAX(LENGTH(`$columnName`)) AS _max
+            FROM $dbName.$tableName ;
+            ";
+        } else {
+            throw new Exception('getMinMax was not designed for this data type');
+        };
 
         $sth = $this->dbh->query($query);
-        //print_r($sth);
         $result = $sth->fetch(PDO::FETCH_ASSOC);
         $sth = null;
 
@@ -116,15 +165,15 @@ class DBOverflowCheck {
             if(!array_key_exists($dataType, $this->maxAllowed))
                 continue;
 
-            $minmax = $this->getMinMax($cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
+            $minmax = $this->getMinMax($cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME'],$dataType);
             $minUsed  = $minmax['_min'];
             $maxUsed  = $minmax['_max'];
 
             $maxValueAllowed =  $this->maxAllowed[$dataType];
             $minValueAllowed = -$this->maxAllowed[$dataType];
 
-            $toOverflow  = ($maxUsed / $maxValueAllowed) * 100.0;
-            $toUnderflow = ($minUsed / $minValueAllowed) * 100.0;
+            $toOverflow  = bcdiv($maxUsed,$maxValueAllowed,4) * 100.0;
+            $toUnderflow = bcdiv($minUsed,$minValueAllowed,4) * 100.0;
 
             # if toUnderflow is negative, the min value must be
             # positive, and that's a very low risk of underflow.
