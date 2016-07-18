@@ -16,7 +16,9 @@ class DBOverflowCheck {
     public $dbh;
 
     # http://dev.mysql.com/doc/refman/5.7/en/integer-types.html
-    public $maxValues = array(
+    # for the signed types min=-max
+    # for unsigned types   min=0
+    public $maxAllowed = array(
         'tinyint'    => 127,
         'utinyint'   => 255,
         'smallint'   => 32767,
@@ -27,6 +29,14 @@ class DBOverflowCheck {
         'uint'       => 4294967295,
         'bigint'     => 9223372036854775807,
         'ubigint'    => 18446744073709551615,
+    );
+
+    public $proneToUnderflow = array(
+        'tinyint',
+        'smallint',
+        'mediumint',
+        'int',
+        'bigint',
     );
 
     function __construct() {
@@ -80,6 +90,17 @@ class DBOverflowCheck {
         return $result;
     }
 
+    # extract column attributes
+    function extractColumnWidth($columnType) {
+        # this method is not yet being used.
+
+        # this regex extracts the width of the column data type
+        $regexColumnWidth = '/^.*\(([0-9]+(?:,[0-9]+)?)\).*$/';
+        preg_match($regexColumnWidth,$columnType,$rawWidthAttribs);
+
+        return $rawWidthAttribs;
+    }
+
     # checks all columns for overflows
     function check() {
         $metadata = $this->getColumnMetadata();
@@ -87,41 +108,73 @@ class DBOverflowCheck {
         # put together all the required data
         $all_column_data = array();
         foreach($metadata as $idx => $cdata ) {
-            $maxKey = $cdata['DATA_TYPE'];
-            if(!$cdata['signed'])
-                $maxKey = "u$maxKey";
-            if(!array_key_exists($maxKey, $this->maxValues))
+            $signed   = $cdata['signed'];
+            $dataType = $cdata['DATA_TYPE'];
+            $widthAttribs = $this->extractColumnWidth($cdata['COLUMN_TYPE']);
+            if(!$signed)
+                $dataType = "u$dataType";
+            if(!array_key_exists($dataType, $this->maxAllowed))
                 continue;
 
             $minmax = $this->getMinMax($cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
+            $minUsed  = $minmax['_min'];
             $maxUsed  = $minmax['_max'];
-            $maxField = $this->maxValues[$maxKey];
-            $pUsed = ($maxUsed / $maxField) * 100.0;
+
+            $maxValueAllowed =  $this->maxAllowed[$dataType];
+            $minValueAllowed = -$this->maxAllowed[$dataType];
+
+            $toOverflow  = ($maxUsed / $maxValueAllowed) * 100.0;
+            $toUnderflow = ($minUsed / $minValueAllowed) * 100.0;
+
+            # if toUnderflow is negative, the min value must be
+            # positive, and that's a very low risk of underflow.
+            # to make the report more consistent and clear,
+            # we set this to 0 
+            if($toUnderflow <= 0) {
+                $toUnderflow = 0;
+            };
+            # analog situation for toOverflow
+            if($toOverflow <= 0) {
+                $toOverflow = 0;
+            };
 
             $column_data = array(
-                'maxUsed'       => $maxUsed,
-                'maxField'      => $maxField,
-                'pUsed'         => $pUsed,
+                'dataType'      => $dataType,
+                'maxAllowed'    => $maxValueAllowed,
+                'minAllowed'    => $minValueAllowed,
+                'toOverflow'    => $toOverflow,
+                'toUnderflow'   => $toUnderflow,
                 'TABLE_SCHEMA'  => $cdata['TABLE_SCHEMA'],
                 'TABLE_NAME'    => $cdata['TABLE_NAME'],
                 'COLUMN_NAME'   => $cdata['COLUMN_NAME'],
+                'widthAttribs'  => $widthAttribs,
             );
 
             array_push($all_column_data, $column_data);
         };
 
-        # sort them by closeness to the maximum value for that data type
+        # sort them by closeness maximum value
         uasort(
             $all_column_data,
             function($a,$b) {
-                return $a['pUsed'] < $b['pUsed'];
-            });
+                return $a['toOverflow'] < $b['toOverflow'];
+            }
+        );
 
         # print all the data
+        printf("%-60s %-6s %-6s\n", 'column','overflow','underflow');
         foreach($all_column_data as $idx => $cdata) {
-            $formattedName = $cdata['TABLE_SCHEMA'].'.'.$cdata['TABLE_NAME'].'.'.$cdata['COLUMN_NAME'];
-            $pUsed = $cdata['pUsed'];
-            printf("%-60s %-.4f %% used\n", $formattedName, $pUsed);
+            $formattedName = sprintf('%s.%s.%s',$cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
+            $toOverflow  = $cdata['toOverflow'];
+            $toUnderflow = $cdata['toUnderflow'];
+            $dataType    = $cdata['dataType'];
+
+            if(in_array($dataType, $this->proneToUnderflow)) {
+                printf("%-60s %-.4f%% %-.4f%%\n", $formattedName, $toOverflow, $toUnderflow);
+            } else {
+                printf("%-60s %-.4f%% %-6s\n"   , $formattedName, $toOverflow, 'N/A');
+            };
+
         };
     }
 
