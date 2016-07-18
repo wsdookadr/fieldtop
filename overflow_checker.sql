@@ -23,7 +23,7 @@ JOIN (
     COLUMN_TYPE,
     TABLE_SCHEMA,
     DATA_TYPE,
-    (LOWER(COLUMN_TYPE) REGEXP '.* signed.*') AS signed,
+    (!(LOWER(COLUMN_TYPE) REGEXP '.*unsigned.*')) AS signed,
     CAST(
       -- gets width attribute of numeric data type
       (
