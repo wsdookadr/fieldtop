@@ -33,3 +33,8 @@ Testing
 
 This tool has been developed and tested using MySQL 5.5.49 and PHP 5.5.9
 and is expected to work on PHP >= 5.5.9
+
+Bugs
+----
+
+Please report any bugs in [the issue tracker](https://github.com/wsdookadr/overflow-checker/issues/new).
