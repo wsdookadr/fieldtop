@@ -1,5 +1,5 @@
 <?php
-
+ini_set('precision',40);
 if (php_sapi_name() !== "cli")
     echo "<pre>";
 
@@ -14,22 +14,69 @@ if (php_sapi_name() !== "cli")
 
 class DBOverflowCheck {
     public $dbh;
+    public $maxAllowed = array();
 
-    # http://dev.mysql.com/doc/refman/5.7/en/integer-types.html
-    public $maxValues = array(
-        'tinyint'    => 127,
-        'utinyint'   => 255,
-        'smallint'   => 32767,
-        'usmallint'  => 65535,
-        'mediumint'  => 8388607,
-        'umediumint' => 16777215,
-        'int'        => 2147483647,
-        'uint'       => 4294967295,
-        'bigint'     => 9223372036854775807,
-        'ubigint'    => 18446744073709551615,
+    public $proneToUnderflow = array(
+        'tinyint',
+        'smallint',
+        'mediumint',
+        'int',
+        'bigint',
+    );
+
+    public $textTypes = array(
+        'tinytext',
+        'text',
+        'mediumtext',
+        'longtext',
+        'varchar',
+        'char',
+    );
+
+    public $numericTypes = array(
+        'tinyint',
+        'smallint',
+        'mediumint',
+        'int',
+        'bigint',
+        'utinyint',
+        'usmallint',
+        'umediumint',
+        'uint',
+        'ubigint',
     );
 
     function __construct() {
+
+        # for numeric types
+        # http://dev.mysql.com/doc/refman/5.7/en/integer-types.html
+        # - the signed types min=-max
+        # - unsigned types   min=0
+        # 
+        # for text types
+        # http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html#idm140434164775232
+        # http://stackoverflow.com/a/13506920/827519
+        # http://stackoverflow.com/a/13932834/827519
+        $this->maxAllowed = array(
+            # numeric types
+            'tinyint'    => "127",
+            'utinyint'   => "255",
+            'smallint'   => "32767",
+            'usmallint'  => "65535",
+            'mediumint'  => "8388607",
+            'umediumint' => "16777215",
+            'int'        => "2147483647",
+            'uint'       => "4294967295",
+            'bigint'     => "9223372036854775807",
+            'ubigint'    => "18446744073709551615",
+            # text types
+            'char'       => 255,
+            'varchar'    => 65535,
+            'tinytext'   => (1<<8),
+            'text'       => (1<<16),
+            'mediumtext' => (1<<24),
+            'longtext'   => (1<<32),
+        );
     }
 
     function __destruct() {
@@ -51,10 +98,10 @@ class DBOverflowCheck {
     }
 
     # gets column minimum and maximum values
-    function getMinMax($dbName,$tableName,$columnName) {
+    function getMinMax($dbName,$tableName,$columnName,$dataType) {
 
         # check parameters
-        $validNamePattern = '/^[a-zA-Z0-9_\-]+$/';
+        $validNamePattern = '/^[a-zA-Z0-9_\-\ ]+$/';
         if(!preg_match($validNamePattern,$tableName)) {
             throw new Exception('Invalid table name');
         };
@@ -62,22 +109,45 @@ class DBOverflowCheck {
             throw new Exception('Invalid database name');
         };
         if(!preg_match($validNamePattern,$columnName)) {
+            printf("%s\n",$columnName);
             throw new Exception('Invalid column name');
         };
 
-        $query = "
+        $query="";
+        if(in_array($dataType, $this->numericTypes)) {
+            $query="
             SELECT
-                MIN($columnName) AS _min,
-                MAX($columnName) AS _max
+                MIN(`$columnName`) AS _min,
+                MAX(`$columnName`) AS _max
             FROM $dbName.$tableName ;
-        ";
+            ";
+        } else if(in_array($dataType, $this->textTypes)) {
+            $query="
+            SELECT
+                MIN(LENGTH(`$columnName`)) AS _min,
+                MAX(LENGTH(`$columnName`)) AS _max
+            FROM $dbName.$tableName ;
+            ";
+        } else {
+            throw new Exception('getMinMax was not designed for this data type');
+        };
 
         $sth = $this->dbh->query($query);
-        //print_r($sth);
         $result = $sth->fetch(PDO::FETCH_ASSOC);
         $sth = null;
 
         return $result;
+    }
+
+    # extract column attributes
+    function extractColumnWidth($columnType) {
+        # this method is not yet being used.
+
+        # this regex extracts the width of the column data type
+        $regexColumnWidth = '/^.*\(([0-9]+(?:,[0-9]+)?)\).*$/';
+        preg_match($regexColumnWidth,$columnType,$rawWidthAttribs);
+
+        return $rawWidthAttribs;
     }
 
     # checks all columns for overflows
@@ -87,41 +157,73 @@ class DBOverflowCheck {
         # put together all the required data
         $all_column_data = array();
         foreach($metadata as $idx => $cdata ) {
-            $maxKey = $cdata['DATA_TYPE'];
-            if(!$cdata['signed'])
-                $maxKey = "u$maxKey";
-            if(!array_key_exists($maxKey, $this->maxValues))
+            $signed   = $cdata['signed'];
+            $dataType = $cdata['DATA_TYPE'];
+            $widthAttribs = $this->extractColumnWidth($cdata['COLUMN_TYPE']);
+            if(!$signed)
+                $dataType = "u$dataType";
+            if(!array_key_exists($dataType, $this->maxAllowed))
                 continue;
 
-            $minmax = $this->getMinMax($cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
+            $minmax = $this->getMinMax($cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME'],$dataType);
+            $minUsed  = $minmax['_min'];
             $maxUsed  = $minmax['_max'];
-            $maxField = $this->maxValues[$maxKey];
-            $pUsed = ($maxUsed / $maxField) * 100.0;
+
+            $maxValueAllowed =  $this->maxAllowed[$dataType];
+            $minValueAllowed = -$this->maxAllowed[$dataType];
+
+            $toOverflow  = bcdiv($maxUsed,$maxValueAllowed,4) * 100.0;
+            $toUnderflow = bcdiv($minUsed,$minValueAllowed,4) * 100.0;
+
+            # if toUnderflow is negative, the min value must be
+            # positive, and that's a very low risk of underflow.
+            # to make the report more consistent and clear,
+            # we set this to 0 
+            if($toUnderflow <= 0) {
+                $toUnderflow = 0;
+            };
+            # analog situation for toOverflow
+            if($toOverflow <= 0) {
+                $toOverflow = 0;
+            };
 
             $column_data = array(
-                'maxUsed'       => $maxUsed,
-                'maxField'      => $maxField,
-                'pUsed'         => $pUsed,
+                'dataType'      => $dataType,
+                'maxAllowed'    => $maxValueAllowed,
+                'minAllowed'    => $minValueAllowed,
+                'toOverflow'    => $toOverflow,
+                'toUnderflow'   => $toUnderflow,
                 'TABLE_SCHEMA'  => $cdata['TABLE_SCHEMA'],
                 'TABLE_NAME'    => $cdata['TABLE_NAME'],
                 'COLUMN_NAME'   => $cdata['COLUMN_NAME'],
+                'widthAttribs'  => $widthAttribs,
             );
 
             array_push($all_column_data, $column_data);
         };
 
-        # sort them by closeness to the maximum value for that data type
+        # sort them by closeness maximum value
         uasort(
             $all_column_data,
             function($a,$b) {
-                return $a['pUsed'] < $b['pUsed'];
-            });
+                return $a['toOverflow'] < $b['toOverflow'];
+            }
+        );
 
         # print all the data
+        printf("%-60s %-6s  %-6s\n", 'column','overflow','underflow');
         foreach($all_column_data as $idx => $cdata) {
-            $formattedName = $cdata['TABLE_SCHEMA'].'.'.$cdata['TABLE_NAME'].'.'.$cdata['COLUMN_NAME'];
-            $pUsed = $cdata['pUsed'];
-            printf("%-60s %-.4f %% used\n", $formattedName, $pUsed);
+            $formattedName = sprintf('%s.%s.%s',$cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
+            $toOverflow  = $cdata['toOverflow'];
+            $toUnderflow = $cdata['toUnderflow'];
+            $dataType    = $cdata['dataType'];
+
+            if(in_array($dataType, $this->proneToUnderflow)) {
+                printf("%-60s %2.4f%%  %2.4f%%\n", $formattedName, $toOverflow, $toUnderflow);
+            } else {
+                printf("%-60s %2.4f%% %8s\n"   , $formattedName, $toOverflow, 'N/A');
+            };
+
         };
     }
 
