@@ -9,7 +9,6 @@ interesting insight into your databases. Which fields might overflow
 for unintended reasons. Numeric values are checked against the highest
 allowed number. Text values against the max length for the field.
 
-
 Use-case
 ----------------
 
@@ -19,9 +18,9 @@ This means that at some point, some of the data will outgrow
 the designated data types. This tool provides a way of handling
 this problem in a proactive/preventive manner.
 
-This tool can offer useful information for numeric data types, (for
+This tool can offer useful information for integer data types (for
 example ID columns, or for data types that grow in size over time)
-and for text data.
+and for text data types.
 
 The following data or data types are outside the scope of this tool:
 - [BIT fields](https://dev.mysql.com/doc/refman/5.7/en/bit-field-literals.html)
