@@ -3,7 +3,7 @@ ini_set('precision',40);
 if (php_sapi_name() !== "cli")
     echo "<pre>";
 
-include('overflow_checker_config.php');
+include('fieldtop_config.php');
 
 $o = new DBOverflowCheck();
 $o->connectDB($userPass['user'],$userPass['pass'],'information_schema');
@@ -85,7 +85,7 @@ class DBOverflowCheck {
 
     # get all column metadata
     function getColumnMetadata() {
-        $query = file_get_contents('overflow_checker.sql');
+        $query = file_get_contents('fieldtop.sql');
         $sth = $this->dbh->query($query);
         $result = $sth->fetchAll(PDO::FETCH_ASSOC);
         $sth = null;
