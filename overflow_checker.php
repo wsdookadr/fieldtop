@@ -141,13 +141,19 @@ class DBOverflowCheck {
 
     # extract column attributes
     function extractColumnWidth($columnType) {
-        # this method is not yet being used.
-
         # this regex extracts the width of the column data type
         $regexColumnWidth = '/^.*\(([0-9]+(?:,[0-9]+)?)\).*$/';
+        $regexSplitValues = '/[\s,\(\)]+/';
         preg_match($regexColumnWidth,$columnType,$rawWidthAttribs);
 
-        return $rawWidthAttribs;
+        # preg_match will put the entire string in [0] and the matches
+        # will start at [1]
+        if($rawWidthAttribs === NULL || count($rawWidthAttribs) < 2)
+            return null;
+
+        $widthAttribs = preg_split($regexSplitValues,$rawWidthAttribs[0]);
+
+        return $widthAttribs;
     }
 
     # checks all columns for overflows
@@ -171,6 +177,13 @@ class DBOverflowCheck {
 
             $maxValueAllowed =  $this->maxAllowed[$dataType];
             $minValueAllowed = -$this->maxAllowed[$dataType];
+
+            # for text fields, use width attribute in the column definition
+            # as the maximum allowed 
+            if(in_array($dataType, $this->textTypes) && $widthAttribs !== NULL) {
+                $maxValueAllowed = $widthAttribs[1];
+            };
+            //printf("%s %s\n",$cdata['COLUMN_NAME'],$cdata['COLUMN_TYPE']);
 
             $toOverflow  = bcdiv($maxUsed,$maxValueAllowed,4) * 100.0;
             $toUnderflow = bcdiv($minUsed,$minValueAllowed,4) * 100.0;
