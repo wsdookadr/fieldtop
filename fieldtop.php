@@ -224,17 +224,20 @@ class DBOverflowCheck {
         );
 
         # print all the data
-        printf("%-60s %-6s  %-6s\n", 'column','overflow','underflow');
+        printf("%-60s  %8s  %9s\n", 'column','overflow','underflow');
         foreach($all_column_data as $idx => $cdata) {
             $formattedName = sprintf('%s.%s.%s',$cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
             $toOverflow  = $cdata['toOverflow'];
             $toUnderflow = $cdata['toUnderflow'];
             $dataType    = $cdata['dataType'];
 
+            $toOverflow  = sprintf("%3.4f", $toOverflow);
+            $toUnderflow = sprintf("%3.4f", $toUnderflow);
+
             if(in_array($dataType, $this->proneToUnderflow)) {
-                printf("%-60s %2.4f%%  %2.4f%%\n", $formattedName, $toOverflow, $toUnderflow);
+                printf("%-60s %8s%%  %8s%%\n", $formattedName, $toOverflow, $toUnderflow);
             } else {
-                printf("%-60s %2.4f%% %8s\n"   , $formattedName, $toOverflow, 'N/A');
+                printf("%-60s %8s%%  %8s\n"   , $formattedName, $toOverflow, '      N/A');
             };
 
         };
