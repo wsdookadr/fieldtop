@@ -1,7 +1,7 @@
 Intro
 -----
 
-Overflow-Checker looks at all fields in all tables and all databases
+Fieldtop looks at all fields in all tables and all databases
 and analyzes how close the values in each field are to the maximum
 (or minimum) allowed value for the given field type. This can give you
 interesting insight into your databases. Which fields might overflow
@@ -37,10 +37,10 @@ and is expected to work on PHP >= 5.5.9
 Contributing
 ------------
 
-You are welcome to send [pull requests](https://github.com/wsdookadr/overflow-checker/pulls)
+You are welcome to send [pull requests](https://github.com/wsdookadr/fieldtop/pulls)
 with enhancements or fixes to this project.
 
 Bugs
 ----
 
-Please report any bugs in [the issue tracker](https://github.com/wsdookadr/overflow-checker/issues/new).
+Please report any bugs in [the issue tracker](https://github.com/wsdookadr/fieldtop/issues/new).
