@@ -11,13 +11,14 @@ this:
 | --------------------- |:-------------:| -----:|
 | community.users.id    |               |   30% |
 | community.users.name  |               |  100% |
+| community.users.karma |         60%   |    1% |
 | community.posts.id    |               |    1% |
 | community.posts.text  |               |  100% |
 
-Which fields might overflow
-(or underflow if applicable) soon or which fields have very large values
-for unintended reasons. Numeric values are checked against the highest
-allowed number. Text values against the max length for the field.
+This would tell you a couple of things at a glance:
+...Your user IDs use 30% of the available range. Depending on how long the project has been running, this can be ok or could mean your field is in danger of overflowing at some point.
+...Some user names already use the maximum length. This is probably ok if your database design is in sync with your application.
+...The negative values in the user karma column are already pretty big. Maybe you did not expect that people aquire negative karma so fast?
 
 Use-case
 ----------------
