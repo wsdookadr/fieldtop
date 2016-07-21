@@ -123,8 +123,8 @@ class DBOverflowCheck {
         } else if(in_array($dataType, $this->textTypes)) {
             $query="
             SELECT
-                MIN(LENGTH(`$columnName`)) AS _min,
-                MAX(LENGTH(`$columnName`)) AS _max
+                MIN(CHAR_LENGTH(`$columnName`)) AS _min,
+                MAX(CHAR_LENGTH(`$columnName`)) AS _max
             FROM $dbName.$tableName ;
             ";
         } else {
