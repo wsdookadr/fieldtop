@@ -1,20 +1,19 @@
 <?php
-ini_set('precision',40);
-if (php_sapi_name() !== "cli")
-    echo "<pre>";
 
 include('fieldtop_config.php');
 
-$o = new DBOverflowCheck();
+if (php_sapi_name() == 'cli') $mode='cli';
+else                          $mode='html';
+
+$o = new DBOverflowCheck($mode);
 $o->connectDB($userPass['user'],$userPass['pass'],'information_schema');
 $o->check();
-
-if (php_sapi_name() !== "cli")
-    echo "</pre>";
+$o->show($mode);
 
 class DBOverflowCheck {
-    public $dbh;
-    public $maxAllowed = array();
+    public $dbh        = null; // Database connection
+    public $maxAllowed = null; // MySql field type limits
+    public $columnData = null; // Analysis result
 
     public $proneToUnderflow = array(
         'tinyint',
@@ -161,7 +160,7 @@ class DBOverflowCheck {
         $metadata = $this->getColumnMetadata();
 
         # put together all the required data
-        $all_column_data = array();
+        $this->columnData = array();
         foreach($metadata as $idx => $cdata ) {
             $signed   = $cdata['signed'];
             $dataType = $cdata['DATA_TYPE'];
@@ -183,7 +182,6 @@ class DBOverflowCheck {
             if(in_array($dataType, $this->textTypes) && $widthAttribs !== NULL) {
                 $maxValueAllowed = $widthAttribs[1];
             };
-            //printf("%s %s\n",$cdata['COLUMN_NAME'],$cdata['COLUMN_TYPE']);
 
             $toOverflow  = bcdiv($maxUsed,$maxValueAllowed,4) * 100.0;
             $toUnderflow = bcdiv($minUsed,$minValueAllowed,4) * 100.0;
@@ -212,36 +210,56 @@ class DBOverflowCheck {
                 'widthAttribs'  => $widthAttribs,
             );
 
-            array_push($all_column_data, $column_data);
+            array_push($this->columnData, $column_data);
         };
 
         # sort them by closeness maximum value
         uasort(
-            $all_column_data,
+            $this->columnData,
             function($a,$b) {
                 return $a['toOverflow'] < $b['toOverflow'];
             }
         );
 
-        # print all the data
-        printf("%-60s  %8s  %9s\n", 'column','overflow','underflow');
-        foreach($all_column_data as $idx => $cdata) {
+    }
+
+    function show($mode)
+    {
+        if ($mode=='html')
+        {
+            print('<style>td {padding-right: 2em} tr:hover {background: #ffff80} th {text-align: left} </style><table>');
+            print('<tr><th>Column</th><th>Min</th><th>Max</th></tr>');
+        }
+        if ($mode=='cli')
+        {
+            printf("%-60s  %8s  %9s\n", 'Column','Min','Max');
+        }
+        foreach($this->columnData as $idx => $cdata) {
             $formattedName = sprintf('%s.%s.%s',$cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
             $toOverflow  = $cdata['toOverflow'];
             $toUnderflow = $cdata['toUnderflow'];
             $dataType    = $cdata['dataType'];
-
-            $toOverflow  = sprintf("%3.4f", $toOverflow);
-            $toUnderflow = sprintf("%3.4f", $toUnderflow);
-
-            if(in_array($dataType, $this->proneToUnderflow)) {
-                printf("%-60s %8s%%  %8s%%\n", $formattedName, $toOverflow, $toUnderflow);
-            } else {
-                printf("%-60s %8s%%  %8s\n"   , $formattedName, $toOverflow, '      N/A');
-            };
-
+            if ($mode=='cli' ) $this->showFieldCli ($formattedName,$toOverflow,$toUnderflow,$dataType);
+            if ($mode=='html') $this->showFieldHtml($formattedName,$toOverflow,$toUnderflow,$dataType);
         };
+        if ($mode=='html') print '</table>';
     }
 
-}
+    function showFieldCli($formattedName,$toOverflow,$toUnderflow,$dataType)
+    {
+            $toOverflow  = sprintf("%3.4f", $toOverflow);
+            $toUnderflow = sprintf("%3.4f", $toUnderflow);
+            if(!in_array($dataType, $this->proneToUnderflow)) $toUnderflow='n/a';
+            printf("%-60s %8s%%  %8s%%\n", $formattedName, $toUnderflow, $toOverflow);
+    }
 
+    function showFieldHtml($formattedName,$toOverflow,$toUnderflow,$dataType)
+    {
+            $toOverflow  = sprintf("%3.4f", $toOverflow);
+            $toUnderflow = sprintf("%3.4f", $toUnderflow);
+            if(!in_array($dataType, $this->proneToUnderflow)) $toUnderflow='-';
+            printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", $formattedName, $toUnderflow, $toOverflow);
+    }
+
+
+}
