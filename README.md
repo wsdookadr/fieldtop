@@ -4,14 +4,15 @@ Intro
 Fieldtop looks at all fields in all tables and all databases
 and analyzes how close the values in each field are to the maximum
 (or minimum) allowed value for the given field type. This can give you
-interesting insight into your databases:
+interesting insight into your databases. A typical output looks like
+this:
 
-| Field         | Min           | Max   |
-| ------------- |:-------------:| -----:|
-| users.id      |               |   30% |
-| users.name    |               |  100% |
-| orders.id     |               |    1% |
-
+| Field                 | Min           | Max   |
+| --------------------- |:-------------:| -----:|
+| community.users.id    |               |   30% |
+| community.users.name  |               |  100% |
+| community.posts.id    |               |    1% |
+| community.posts.text  |               |  100% |
 
 Which fields might overflow
 (or underflow if applicable) soon or which fields have very large values
