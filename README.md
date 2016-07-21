@@ -16,9 +16,9 @@ this:
 | community.posts.text  |               |  100% |
 
 This would tell you a couple of things at a glance:
-...Your user IDs use 30% of the available range. Depending on how long the project has been running, this can be ok or could mean your field is in danger of overflowing at some point.
-...Some user names already use the maximum length. This is probably ok if your database design is in sync with your application.
-...The negative values in the user karma column are already pretty big. Maybe you did not expect that people aquire negative karma so fast?
+* Your user IDs use 30% of the available range. Depending on how long the project has been running, this can be ok or could mean your field is in danger of overflowing at some point.
+* Some user names already use the maximum length. This is probably ok if your database design is in sync with your application.
+* The negative values in the user karma column are already pretty big. Maybe you did not expect that people aquire negative karma so fast?
 
 Use-case
 ----------------
