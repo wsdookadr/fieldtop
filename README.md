@@ -25,7 +25,7 @@ This would tell you a couple of things at a glance:
 The output can be escpecially interesting for databases that have been used for extended
 periods of time. Often at some point, some of the data will outgrow the designated data types.
 
-In fact, the the idea to make this tool came up when [no-gravity](https://github.com/no-gravity) noticed that after 10 years of unsupervised learning, his music recommendation system [Gnoosic](http://www.gnoosic.com) maxed out over 50% of the available range for band popularity. The popularity was stored in a signed integer which can hold number up to 2 billion. And Pink Floyd was already at 1.3 billion.
+In fact, the the idea to make this tool came up when [no-gravity](https://github.com/no-gravity) noticed that after 10 years of unsupervised learning, his music recommendation system [Gnoosic](http://www.gnoosic.com) maxed out over 50% of the available range for band popularity. The popularity was stored in a signed integer which can hold numbers up to 2 billion. And Pink Floyd was already at 1.3 billion. So the popularity field was destined to overflow at some point in the future.
 
 Testing
 -------
