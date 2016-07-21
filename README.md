@@ -4,7 +4,16 @@ Intro
 Fieldtop looks at all fields in all tables and all databases
 and analyzes how close the values in each field are to the maximum
 (or minimum) allowed value for the given field type. This can give you
-interesting insight into your databases. Which fields might overflow
+interesting insight into your databases:
+
+| Field         | Min           | Max   |
+| ------------- |:-------------:| -----:|
+| users.id      |               |   30% |
+| users.name    |               |  100% |
+| orders.id     |               |    1% |
+
+
+Which fields might overflow
 (or underflow if applicable) soon or which fields have very large values
 for unintended reasons. Numeric values are checked against the highest
 allowed number. Text values against the max length for the field.
