@@ -228,11 +228,11 @@ class DBOverflowCheck {
         if ($mode=='html')
         {
             print('<style>td {padding-right: 2em} tr:hover {background: #ffff80} th {text-align: left} </style><table>');
-            print('<tr><th>Column</th><th>Min</th><th>Max</th></tr>');
+            print('<tr><th>Field</th><th>Min</th><th>Max</th></tr>');
         }
         if ($mode=='cli')
         {
-            printf("%-60s  %8s  %9s\n", 'Column','Min','Max');
+            printf("%-60s  %8s  %9s\n", 'Field','Min','Max');
         }
         foreach($this->columnData as $idx => $cdata) {
             $formattedName = sprintf('%s.%s.%s',$cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
