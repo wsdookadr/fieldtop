@@ -1,0 +1,19 @@
+{
+  "name": "wsdookadr/fieldtop",
+  "description": "Finds near-overflow columns in MySQL databases",
+  "homepage": "https://github.com/wsdookadr/fieldtop",
+  "license": "MIT",
+  "type": "project",
+  "require": {
+    "php": ">=5.5",
+    "symfony/console": "~2.3||~3.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "FieldTop\\": "src/"
+    }
+  },
+  "bin": [
+    "bin/fieldtop"
+  ]
+}

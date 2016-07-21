@@ -28,6 +28,16 @@ The following data or data types are outside the scope of this tool:
 - columns that store IP addresses
 - columns that store hashes values (MD5, SHA1 for example)
 
+
+Usage
+_____
+
+
+```bash
+$ composer require wsdookadr/fieldtop
+$ vendor/bin/fieldtop --help
+```
+
 Testing
 -------
 
