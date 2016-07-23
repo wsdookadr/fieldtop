@@ -93,12 +93,6 @@ class OverflowChecker
         );
     }
 
-
-    function __destruct()
-    {
-        $dbh = null;
-    }
-
     /**
      * @param mixed $database
      */
@@ -258,7 +252,7 @@ class OverflowChecker
                 $maxValueAllowed = $widthAttribs[1];
             };
 
-            if (abs($maxValueAllowed) == 0) {
+            if (abs($maxValueAllowed) === 0) {
                 $toOverflow = 100;
             } else {
                 $toOverflow = number_format(($maxUsed/$maxValueAllowed) * 100, 4);
