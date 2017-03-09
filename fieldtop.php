@@ -99,19 +99,6 @@ class DBOverflowCheck {
     # gets column minimum and maximum values
     function getMinMax($dbName,$tableName,$columnName,$dataType) {
 
-        # check parameters
-        $validNamePattern = '/^[a-zA-Z0-9_\-\ ]+$/';
-        if(!preg_match($validNamePattern,$tableName)) {
-            throw new Exception('Invalid table name');
-        };
-        if(!preg_match($validNamePattern,$dbName)) {
-            throw new Exception('Invalid database name');
-        };
-        if(!preg_match($validNamePattern,$columnName)) {
-            printf("%s\n",$columnName);
-            throw new Exception('Invalid column name');
-        };
-        
         $query="";
         if(in_array($dataType, $this->numericTypes)) {
             $query="
