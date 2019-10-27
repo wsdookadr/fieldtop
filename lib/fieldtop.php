@@ -159,23 +159,8 @@ class DBOverflowCheck {
                 $maxValueAllowed = $widthAttribs[1];
             };
 
-            /*
-            try {
-            */
-
-            $toOverflow  = bcdiv($maxUsed,$maxValueAllowed,4) * 100.0;
-            $toUnderflow = bcdiv($minUsed,$minValueAllowed,4) * 100.0;
-
-            /*
-            } catch(Throwable $t) {
-                echo 'Caught exception: ',  $t->getMessage(), "\n";
-                print($t->getTraceAsString());
-                printf("minValueAllowed=%s maxValueAllowed=%s\n",$minValueAllowed,$maxValueAllowed);
-                printf("minUsed=%s maxUsed=%s\n",$minUsed,$maxUsed);
-                printf("DB=%s,TBL=%s,COL=%s\n",$cdata['TABLE_SCHEMA'],$cdata['TABLE_NAME'],$cdata['COLUMN_NAME']);
-                throw $t;
-            };
-            */
+            $toOverflow  = (floatval($maxUsed)/floatval($maxValueAllowed)) * 100.0;
+            $toUnderflow = (floatval($minUsed)/floatval($minValueAllowed)) * 100.0;
 
 
             /*
