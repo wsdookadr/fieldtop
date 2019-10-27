@@ -12,7 +12,7 @@ FROM (
     FROM information_schema.tables
     WHERE 
     TABLE_TYPE IN ('BASE TABLE', 'VIEW') AND
-    TABLE_SCHEMA NOT IN ('mysql', 'performance_schema')
+    TABLE_SCHEMA NOT IN ('mysql', 'performance_schema','sys','sakila')
 ) a
 JOIN (
     -- get information about columns types

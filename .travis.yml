@@ -1,0 +1,30 @@
+language: php
+
+services:
+  - mysql
+
+matrix:
+  include:
+    - php: 7.1
+      before_script:
+        - which phpunit
+        - curl -sSfL -o ~/.phpenv/shims/phpunit https://phar.phpunit.de/phpunit-6.5.9.phar
+        - phpunit --version
+        - sudo apt-get install php-bcmath
+    - php: 7.2
+      before_script:
+        - which phpunit
+        - curl -sSfL -o ~/.phpenv/shims/phpunit https://phar.phpunit.de/phpunit-8.4.1.phar
+        - phpunit --version
+        - sudo apt-get install php-bcmath
+    - php: 7.3
+      before_script:
+        - which phpunit
+        - curl -sSfL -o ~/.phpenv/shims/phpunit https://phar.phpunit.de/phpunit-8.4.1.phar
+        - phpunit --version
+        - sudo apt-get install php-bcmath
+
+script:
+    - ls -lhS test/;
+    - pwd;
+    - phpunit --no-coverage -c ./test/phpunit.xml.dist test/ ; EC=$?; echo $EC; exit $EC;

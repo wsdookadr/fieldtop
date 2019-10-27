@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit colors="true" bootstrap="">
+    <testsuites>
+        <testsuite name="Fieldtop Test suite">
+            <directory>test</directory>
+        </testsuite>
+    </testsuites>
+
+</phpunit>
