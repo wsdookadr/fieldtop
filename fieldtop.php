@@ -6,7 +6,7 @@ if (php_sapi_name() == 'cli') $mode='cli';
 else                          $mode='html';
 
 $o = new DBOverflowCheck($mode);
-$o->connectDB($userPass['server'],$userPass['user'],$userPass['pass'],'information_schema');
+$o->connectDB($userPass['host'],$userPass['user'],$userPass['pass'],'information_schema');
 $o->check();
 $o->show($mode);
 
@@ -92,8 +92,8 @@ class DBOverflowCheck {
         return $result;
     }
 
-    function connectDB($server, $user, $password, $dbName) {
-        $this->dbh = new PDO("mysql:host=$server;dbname=$dbName", $user, $password);
+    function connectDB($host, $user, $password, $dbName) {
+        $this->dbh = new PDO("mysql:host=$host;dbname=$dbName", $user, $password);
     }
 
     # gets column minimum and maximum values
@@ -170,8 +170,8 @@ class DBOverflowCheck {
                 $maxValueAllowed = $widthAttribs[1];
             };
 
-            $toOverflow  = bcdiv($maxUsed,$maxValueAllowed,4) * 100.0;
-            $toUnderflow = bcdiv($minUsed,$minValueAllowed,4) * 100.0;
+            $toOverflow  = round($maxUsed/$maxValueAllowed,4) * 100.0;
+            $toUnderflow = round($minUsed/$minValueAllowed,4) * 100.0;
 
             # if toUnderflow is negative, the min value must be
             # positive, and that's a very low risk of underflow.
@@ -215,7 +215,7 @@ class DBOverflowCheck {
         if ($mode=='html')
         {
             print('<style>td {padding-right: 2em} tr:hover {background: #ffff80} th {text-align: left} </style><table>');
-            print('<tr><th>Field</th><th>Min</th><th>Max</th></tr>');
+            print('<tr><th>Field</th><th>Type</th><th>Min</th><th>Max</th></tr>');
         }
         if ($mode=='cli')
         {
@@ -237,7 +237,7 @@ class DBOverflowCheck {
             $toOverflow  = sprintf("%3.4f", $toOverflow);
             $toUnderflow = sprintf("%3.4f", $toUnderflow);
             if(!in_array($dataType, $this->proneToUnderflow)) $toUnderflow='n/a';
-            printf("%-60s %8s%%  %8s%%\n", $formattedName, $toUnderflow, $toOverflow);
+            printf("%-60s %8s %8s%%  %8s%%\n", $formattedName, $dataType, $toUnderflow, $toOverflow);
     }
 
     function showFieldHtml($formattedName,$toOverflow,$toUnderflow,$dataType)
@@ -245,7 +245,7 @@ class DBOverflowCheck {
             $toOverflow  = sprintf("%3.4f", $toOverflow);
             $toUnderflow = sprintf("%3.4f", $toUnderflow);
             if(!in_array($dataType, $this->proneToUnderflow)) $toUnderflow='-';
-            printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", $formattedName, $toUnderflow, $toOverflow);
+            printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $formattedName, $dataType, $toUnderflow, $toOverflow);
     }
 
 
