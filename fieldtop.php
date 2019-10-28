@@ -215,7 +215,7 @@ class DBOverflowCheck {
         if ($mode=='html')
         {
             print('<style>td {padding-right: 2em} tr:hover {background: #ffff80} th {text-align: left} </style><table>');
-            print('<tr><th>Field</th><th>Min</th><th>Max</th></tr>');
+            print('<tr><th>Field</th><th>Type</th><th>Min</th><th>Max</th></tr>');
         }
         if ($mode=='cli')
         {
@@ -237,7 +237,7 @@ class DBOverflowCheck {
             $toOverflow  = sprintf("%3.4f", $toOverflow);
             $toUnderflow = sprintf("%3.4f", $toUnderflow);
             if(!in_array($dataType, $this->proneToUnderflow)) $toUnderflow='n/a';
-            printf("%-60s %8s%%  %8s%%\n", $formattedName, $toUnderflow, $toOverflow);
+            printf("%-60s %8s %8s%%  %8s%%\n", $formattedName, $dataType, $toUnderflow, $toOverflow);
     }
 
     function showFieldHtml($formattedName,$toOverflow,$toUnderflow,$dataType)
@@ -245,7 +245,7 @@ class DBOverflowCheck {
             $toOverflow  = sprintf("%3.4f", $toOverflow);
             $toUnderflow = sprintf("%3.4f", $toUnderflow);
             if(!in_array($dataType, $this->proneToUnderflow)) $toUnderflow='-';
-            printf("<tr><td>%s</td><td>%s</td><td>%s</td></tr>\n", $formattedName, $toUnderflow, $toOverflow);
+            printf("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $formattedName, $dataType, $toUnderflow, $toOverflow);
     }
 
 
