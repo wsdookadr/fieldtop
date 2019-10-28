@@ -6,7 +6,7 @@ if (php_sapi_name() == 'cli') $mode='cli';
 else                          $mode='html';
 
 $o = new DBOverflowCheck($mode);
-$o->connectDB($userPass['server'],$userPass['user'],$userPass['pass'],'information_schema');
+$o->connectDB($userPass['host'],$userPass['user'],$userPass['pass'],'information_schema');
 $o->check();
 $o->show($mode);
 
@@ -92,8 +92,8 @@ class DBOverflowCheck {
         return $result;
     }
 
-    function connectDB($server, $user, $password, $dbName) {
-        $this->dbh = new PDO("mysql:host=$server;dbname=$dbName", $user, $password);
+    function connectDB($host, $user, $password, $dbName) {
+        $this->dbh = new PDO("mysql:host=$host;dbname=$dbName", $user, $password);
     }
 
     # gets column minimum and maximum values
