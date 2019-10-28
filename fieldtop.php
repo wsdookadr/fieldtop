@@ -170,8 +170,8 @@ class DBOverflowCheck {
                 $maxValueAllowed = $widthAttribs[1];
             };
 
-            $toOverflow  = bcdiv($maxUsed,$maxValueAllowed,4) * 100.0;
-            $toUnderflow = bcdiv($minUsed,$minValueAllowed,4) * 100.0;
+            $toOverflow  = round($maxUsed/$maxValueAllowed,4) * 100.0;
+            $toUnderflow = round($minUsed/$minValueAllowed,4) * 100.0;
 
             # if toUnderflow is negative, the min value must be
             # positive, and that's a very low risk of underflow.
